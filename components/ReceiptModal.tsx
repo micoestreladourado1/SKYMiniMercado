@@ -1,7 +1,7 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom';
-import jsPDF from 'https://esm.sh/jspdf@2.5.1';
+import jsPDF from 'jspdf';
 import { CompletedSale } from '../types';
 
 interface ReceiptModalProps {
@@ -79,7 +79,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onNewSale, saleData
             pdf.text(value, rightMargin, y, { align: 'right' });
             y += lineSpacing;
         }
-        
+
         drawRow('Subtotal', `R$ ${saleData.subtotal.toFixed(2)}`);
         if (saleData.discount > 0) {
             drawRow('Desconto', `- R$ ${saleData.discount.toFixed(2)}`);
@@ -142,7 +142,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onNewSale, saleData
                         <h3 className="font-bold">CUPOM NÃO FISCAL</h3>
                         <p className="text-xs">--------------------------------</p>
                     </div>
-                    
+
                     <div className="text-xs space-y-1 flex-1 overflow-y-auto max-h-60 mb-2">
                         {saleData.cart.map(item => (
                             <div key={item.id} className="grid grid-cols-6 gap-1">
@@ -155,9 +155,9 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onNewSale, saleData
                     </div>
 
                     <div className="border-t-2 border-dashed border-gray-400 my-2"></div>
-                    
+
                     <div className="text-sm space-y-1">
-                         <div className="flex justify-between">
+                        <div className="flex justify-between">
                             <span>Subtotal</span>
                             <span>R$ {saleData.subtotal.toFixed(2)}</span>
                         </div>
@@ -171,10 +171,10 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onNewSale, saleData
                             <span>TOTAL</span>
                             <span>R$ {saleData.total.toFixed(2)}</span>
                         </div>
-                        
+
                         <div className="border-t border-dashed border-gray-400 my-1"></div>
                         {renderPaymentDetails()}
-                        
+
                         <div className="flex justify-between">
                             <span>Troco</span>
                             <span>R$ {saleData.change.toFixed(2)}</span>
@@ -182,7 +182,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onNewSale, saleData
                     </div>
 
                     <div className="border-t-2 border-dashed border-gray-400 my-2"></div>
-                    
+
                     <div className="text-center text-xs mt-2">
                         <p>{saleData.date}</p>
                         <p>Obrigado pela preferência!</p>
@@ -190,19 +190,19 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onNewSale, saleData
                 </div>
 
                 <div className="mt-6 space-y-3">
-                    <button 
+                    <button
                         onClick={onNewSale}
                         className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-lg py-3 rounded-md transition-colors"
                     >
                         Nova Venda
                     </button>
-                    <button 
+                    <button
                         onClick={handlePrint}
                         className="w-full flex items-center justify-center bg-gray-600 hover:bg-gray-500 text-white font-bold text-lg py-3 rounded-md transition-colors"
                     >
-                         <svg className="w-5 h-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                           <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062-.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0c1.291-.646 2.098-1.956 2.098-3.418 0-2.26-1.83-4.09-4.09-4.09S9.01 8.322 9.01 10.582c0 1.462.807 2.772 2.098 3.418m11.318 0-1.875 .937m-11.318 0 .937-.469" />
-                         </svg>
+                        <svg className="w-5 h-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062-.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0c1.291-.646 2.098-1.956 2.098-3.418 0-2.26-1.83-4.09-4.09-4.09S9.01 8.322 9.01 10.582c0 1.462.807 2.772 2.098 3.418m11.318 0-1.875 .937m-11.318 0 .937-.469" />
+                        </svg>
                         Imprimir
                     </button>
                 </div>

@@ -4,6 +4,8 @@ import * as XLSX from 'xlsx';
 import { Product, Category, Unit } from '../types';
 import ProductViewModal from './ProductViewModal';
 import ConfirmationModal from './ConfirmationModal';
+import { searchProductImage } from '../lib/gemini';
+import LoadingSpinner from './LoadingSpinner';
 
 interface ProductManagementScreenProps {
     products: Product[];
@@ -29,7 +31,9 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({ produ
         category_id: '',
         unit_id: '',
         isActive: true,
+        image_url: '',
     });
+    const [isSearchingImage, setIsSearchingImage] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
@@ -117,6 +121,7 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({ produ
                 category_id: String(editingProduct.category_id),
                 unit_id: String(editingProduct.unit_id),
                 isActive: editingProduct.active,
+                image_url: editingProduct.image_url || '',
             });
             window.scrollTo(0, 0);
         } else {
@@ -151,6 +156,7 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({ produ
             unit_id: parseInt(unit_id, 10),
             active: formState.isActive,
             total_sold: editingProduct ? editingProduct.total_sold : 0,
+            image_url: formState.image_url,
         };
 
         if (editingProduct) {
@@ -437,6 +443,64 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({ produ
                                         </select>
                                     </div>
                                 </div>
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Imagem do Produto (URL)</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            name="image_url"
+                                            value={formState.image_url}
+                                            onChange={handleFormChange}
+                                            placeholder="https://exemplo.com/foto.jpg"
+                                            className="flex-1 bg-gray-900 border border-gray-600 rounded-md p-2 text-white text-sm focus:ring-cyan-500 focus:border-cyan-500"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                if (!formState.name) {
+                                                    alert('Defina o nome do produto primeiro.');
+                                                    return;
+                                                }
+                                                setIsSearchingImage(true);
+                                                try {
+                                                    const url = await searchProductImage(formState.name);
+                                                    if (url) {
+                                                        setFormState(prev => ({ ...prev, image_url: url }));
+                                                    } else {
+                                                        alert('Nenhuma imagem encontrada.');
+                                                    }
+                                                } catch (e: any) {
+                                                    alert(`Erro: ${e.message}`);
+                                                } finally {
+                                                    setIsSearchingImage(false);
+                                                }
+                                            }}
+                                            disabled={isSearchingImage}
+                                            className="bg-cyan-600 hover:bg-cyan-500 text-white px-3 rounded-md transition-colors disabled:opacity-50 flex items-center justify-center min-w-[40px]"
+                                            title="Buscar imagem com IA"
+                                        >
+                                            {isSearchingImage ? (
+                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                            ) : (
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m15.75 15.75-2.489-2.489m0 0a3.375 3.375 0 1 0-4.773-4.773 3.375 3.375 0 0 0 4.773 4.773Z" />
+                                                </svg>
+                                            )}
+                                        </button>
+                                    </div>
+                                    {formState.image_url && (
+                                        <div className="mt-2 bg-gray-900/50 border border-gray-700 rounded-md p-2 flex justify-center">
+                                            <img
+                                                src={formState.image_url}
+                                                alt="Preview"
+                                                className="h-24 object-contain rounded"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=Imagem+Invalida';
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-300 mb-1">Preço Venda (R$)</label>
@@ -499,9 +563,22 @@ const ProductManagementScreen: React.FC<ProductManagementScreenProps> = ({ produ
                                                         {product.active ? 'Ativo' : 'Inativo'}
                                                     </span>
                                                 </td>
-                                                <td className="p-4">
-                                                    <div>{product.name}</div>
-                                                    <div className="text-xs text-gray-400 font-mono">{product.barcode}</div>
+                                                <td className="p-4 flex items-center gap-3">
+                                                    <div className="w-10 h-10 bg-gray-700 rounded-md flex-shrink-0 flex items-center justify-center overflow-hidden border border-gray-600">
+                                                        {product.image_url ? (
+                                                            <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" onError={(e) => {
+                                                                (e.target as HTMLImageElement).style.display = 'none';
+                                                            }} />
+                                                        ) : (
+                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5 text-gray-500">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                                                            </svg>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <div>{product.name}</div>
+                                                        <div className="text-xs text-gray-400 font-mono">{product.barcode}</div>
+                                                    </div>
                                                 </td>
                                                 <td className="p-4 text-right">R$ {product.price.toFixed(2)}</td>
                                                 <td className={`p-4 text-right font-medium ${calculateProfitMargin(product.price, product.cost_price) < 20 ? 'text-red-400' : 'text-green-400'}`}>

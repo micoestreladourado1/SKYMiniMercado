@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Product } from '../types';
-import * as XLSX from 'https://esm.sh/xlsx@0.18.5';
+import * as XLSX from 'xlsx';
 
 interface ShoppingListScreenProps {
     products: Product[];

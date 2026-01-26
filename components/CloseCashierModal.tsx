@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import jsPDF from 'https://esm.sh/jspdf@2.5.1';
+import jsPDF from 'jspdf';
 import { CashierState, CompletedSale, PaymentMethod, CashierClosingSummary, SystemSettings } from '../types';
 import CurrencyInput from './CurrencyInput';
 
@@ -10,12 +10,13 @@ interface CloseCashierModalProps {
     onClose: () => void;
     onConfirmClose: () => void;
     cashierState: CashierState;
-    sessionSales: CompletedSale[];
+    sessionSales: CompletedSale[]; // Kept for backward compatibility if used elsewhere, but we use allSales for financial summary
+    allSales: CompletedSale[];
 }
 
 const modalRoot = document.getElementById('modal-root');
 
-const CloseCashierModal: React.FC<CloseCashierModalProps & { settings?: SystemSettings }> = ({ isOpen, onClose, onConfirmClose, cashierState, sessionSales, settings }) => {
+const CloseCashierModal: React.FC<CloseCashierModalProps & { settings?: SystemSettings }> = ({ isOpen, onClose, onConfirmClose, cashierState, sessionSales, allSales, settings }) => {
     const [step, setStep] = useState<'input' | 'summary'>('input');
     const [countedCash, setCountedCash] = useState(0);
 
@@ -29,20 +30,44 @@ const CloseCashierModal: React.FC<CloseCashierModalProps & { settings?: SystemSe
     const summary = useMemo<CashierClosingSummary | null>(() => {
         if (cashierState.status !== 'open' || !cashierState.openTime) return null;
 
+        // Helper function for date parsing (matching Dashboard logic)
+        const parseBrazilianDateString = (dateStr: string): Date | null => {
+            const date = new Date(dateStr);
+            return isNaN(date.getTime()) ? null : date;
+        };
+
+        const todayStr = new Date().toLocaleDateString('pt-BR');
+
+        // Filter allSales to only include financially completed sales from TODAY (matches Dashboard)
+        const financiallyCompletedSalesToday = allSales.filter(s => {
+            const saleDate = parseBrazilianDateString(s.date);
+            const isToday = saleDate ? saleDate.toLocaleDateString('pt-BR') === todayStr : false;
+            return s.status === 'completed' && s.paymentMethod !== 'Fiado' && isToday;
+        });
+
         const payments: { [key in PaymentMethod]?: number } & { total: number } = { total: 0 };
-        sessionSales.forEach(sale => {
-            if (sale.status === 'completed') {
-                if (sale.payments && sale.payments.length > 0) {
-                    sale.payments.forEach(p => {
-                        payments[p.method] = (payments[p.method] || 0) + p.amount;
-                    });
-                } else if (sale.paymentMethod && sale.paymentMethod !== 'Múltiplo') {
-                    // Fallback para vendas que não tem o array de pagamentos (vendas simples)
-                    const method = sale.paymentMethod as PaymentMethod;
-                    payments[method] = (payments[method] || 0) + sale.total;
-                }
-                payments.total += sale.total;
+
+        financiallyCompletedSalesToday.forEach(sale => {
+            // Use the same logic as Dashboard for consistency
+            if (sale.payments && sale.payments.length > 0) {
+                // Multi-payment: normalize amounts to ensure they sum to sale.total
+                const paymentsSum = sale.payments.reduce((sum, p) => sum + p.amount, 0);
+
+                sale.payments.forEach(p => {
+                    if (p.method !== 'Fiado') {
+                        // Normalize if there's a discrepancy between payments sum and sale.total
+                        const amount = Math.abs(paymentsSum - sale.total) < 0.01
+                            ? p.amount
+                            : (p.amount / paymentsSum) * sale.total;
+                        payments[p.method] = (payments[p.method] || 0) + amount;
+                    }
+                });
+            } else if (sale.paymentMethod && sale.paymentMethod !== 'Fiado' && sale.paymentMethod !== 'Múltiplo') {
+                // Single payment method: use sale.total directly
+                const method = sale.paymentMethod as PaymentMethod;
+                payments[method] = (payments[method] || 0) + sale.total;
             }
+            payments.total += sale.total;
         });
 
         const expectedInCash = (cashierState.openingBalance || 0) + (payments['Dinheiro'] || 0);
@@ -90,7 +115,7 @@ const CloseCashierModal: React.FC<CloseCashierModalProps & { settings?: SystemSe
                 difference: countedCash - expectedInCash,
             }
         };
-    }, [cashierState, sessionSales, countedCash, settings]);
+    }, [cashierState, allSales, countedCash, settings]);
 
     const generateClosingPdf = (summaryData: CashierClosingSummary) => {
         const pdfWidth = 80; // Changed to 80mm standard thermal
@@ -171,8 +196,10 @@ const CloseCashierModal: React.FC<CloseCashierModalProps & { settings?: SystemSe
 
         drawSectionHeader('FORMAS DE PAGAMENTO');
         Object.entries(summaryData.payments).filter(([key]) => key !== 'total').forEach(([method, total]) => {
-            if ((total as number) > 0) {
-                drawRow(`${method}:`, `R$ ${(total as number).toFixed(2)}`);
+            const displayValue = total as number;
+
+            if (displayValue > 0) {
+                drawRow(`${method}:`, `R$ ${displayValue.toFixed(2)}`);
             }
         });
 
@@ -297,9 +324,13 @@ const CloseCashierModal: React.FC<CloseCashierModalProps & { settings?: SystemSe
                     </ReportSection>
 
                     <ReportSection title="6. Formas de Pagamento">
-                        {Object.entries(summary.payments).filter(([key]) => key !== 'total').map(([method, total]) => (
-                            <ReportRow key={method} label={`${method}:`} value={total as number} />
-                        ))}
+                        {Object.entries(summary.payments).filter(([key]) => key !== 'total').map(([method, total]) => {
+                            const displayValue = total as number;
+
+                            return (
+                                <ReportRow key={method} label={`${method}:`} value={displayValue} />
+                            );
+                        })}
                     </ReportSection>
 
                     <ReportSection title="7. Movimentações de Caixa">

@@ -24,6 +24,7 @@ export interface Product {
   unit_id: number;
   total_sold: number;
   on_shopping_list?: boolean;
+  image_url?: string;
   created_at?: string;
 }
 

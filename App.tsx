@@ -1388,6 +1388,7 @@ const App: React.FC = () => {
           cashierState={{ ...cashierState, sessionSales: currentSessionSales }} onOpenCashier={handleOpenCashier}
           onCloseCashier={handleCloseCashier} employees={employees} loggedInUser={loggedInUser}
           settings={settings}
+          allSales={allSales}
         />;
       case 'products':
         return <ProductManagementScreen

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom';
-import jsPDF from 'https://esm.sh/jspdf@2.5.1';
+import jsPDF from 'jspdf';
 
 interface ConfirmationModalProps {
     isOpen: boolean;
@@ -39,7 +39,7 @@ const CashierConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, on
             pdf.setFontSize(8);
             pdf.text('Comprovante de Abertura de Caixa', pdfWidth / 2, y, { align: 'center' });
             y += 4;
-            
+
             pdf.text('-----------------------------------', pdfWidth / 2, y, { align: 'center' });
             y += 5;
 
@@ -59,7 +59,7 @@ const CashierConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, on
             pdf.setFont('courier', 'bold');
             pdf.setFontSize(11);
             pdf.text(`VALOR: R$ ${details.openingBalance.toFixed(2).replace('.', ',')}`, leftMargin, y);
-            
+
             // Inicia o download do arquivo PDF diretamente.
             pdf.save('comprovante-abertura-caixa.pdf');
 
@@ -75,7 +75,7 @@ const CashierConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, on
     };
 
     const modalContent = (
-         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
             <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-sm p-6 border border-gray-700 flex flex-col">
                 <h2 className="text-2xl font-bold text-white mb-4 text-center">Confirmar Abertura</h2>
                 {/* O elemento visual para o usuário ver antes de confirmar */}
@@ -89,26 +89,26 @@ const CashierConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, on
                             <p><strong>Caixa:</strong> 01</p>
                             <p><strong>Operador:</strong> {details.operatorName}</p>
                             <p className="font-bold text-lg mt-2 border-t border-dashed border-gray-400 pt-2">
-                                VALOR: R$ {details.openingBalance.toFixed(2).replace('.',',')}
+                                VALOR: R$ {details.openingBalance.toFixed(2).replace('.', ',')}
                             </p>
                         </div>
                     </div>
                 </div>
                 <div className="mt-6 space-y-3">
-                    <button 
+                    <button
                         onClick={handleConfirmClick}
                         className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-lg py-3 rounded-md transition-colors"
                     >
                         Abrir Caixa e Exportar PDF
                     </button>
                     <div className="flex gap-3">
-                         <button 
+                        <button
                             onClick={onCorrect}
                             className="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 rounded-md transition-colors"
                         >
                             Corrigir
                         </button>
-                        <button 
+                        <button
                             onClick={onClose}
                             className="w-full bg-red-800 hover:bg-red-700 text-white font-bold py-2 rounded-md transition-colors"
                         >
@@ -119,7 +119,7 @@ const CashierConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, on
             </div>
         </div>
     );
-    
+
     return ReactDOM.createPortal(modalContent, modalRoot);
 };
 

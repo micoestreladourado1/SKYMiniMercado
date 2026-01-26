@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CashierState, Employee, SystemSettings } from '../types';
+import { CashierState, Employee, SystemSettings, CompletedSale } from '../types';
 import OpenCashierModal from './OpenCashierModal';
 import CashierConfirmationModal from './CashierConfirmationModal';
 import CloseCashierModal from './CloseCashierModal';
@@ -11,9 +11,10 @@ interface CashierScreenProps {
     employees: Employee[];
     loggedInUser: Employee;
     settings?: SystemSettings;
+    allSales: CompletedSale[];
 }
 
-const CashierScreen: React.FC<CashierScreenProps> = ({ cashierState, onOpenCashier, onCloseCashier, employees, loggedInUser, settings }) => {
+const CashierScreen: React.FC<CashierScreenProps> = ({ cashierState, onOpenCashier, onCloseCashier, employees, loggedInUser, settings, allSales }) => {
     const [isOpeningModalOpen, setOpeningModalOpen] = useState(false);
     const [isClosingModalOpen, setClosingModalOpen] = useState(false);
     const [openingDetails, setOpeningDetails] = useState<{ operatorName: string; openingBalance: number } | null>(null);
@@ -117,6 +118,7 @@ const CashierScreen: React.FC<CashierScreenProps> = ({ cashierState, onOpenCashi
                 onConfirmClose={handleConfirmCloseCashier}
                 cashierState={cashierState}
                 sessionSales={cashierState.sessionSales || []}
+                allSales={allSales}
                 settings={settings}
             />
         </>
