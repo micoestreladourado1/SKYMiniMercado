@@ -611,17 +611,33 @@ const App: React.FC = () => {
   };
 
   const handleAddProduct = async (newProduct: Omit<Product, 'id'>) => {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('products')
       .insert(newProduct)
       .select()
-      .single();
+      .maybeSingle();
+
+    if (error && error.message.includes('column') && error.message.includes('not found')) {
+      const match = error.message.match(/'([^']+)'/);
+      if (match && match[1]) {
+        const missingColumn = match[1];
+        console.warn(`Column '${missingColumn}' not found in DB. Retrying insert without it...`);
+        const { [missingColumn]: _, ...sanitizedProduct } = newProduct as any;
+        const retry = await supabase
+          .from('products')
+          .insert(sanitizedProduct)
+          .select()
+          .maybeSingle();
+        data = retry.data;
+        error = retry.error;
+      }
+    }
 
     if (data) {
       setProducts(prevProducts => [...prevProducts, data]);
     } else {
       console.error("Error adding product:", error);
-      if (error.message.includes('products_barcode_key')) {
+      if (error?.message?.includes('products_barcode_key')) {
         // Attempt to fetch the existing product to show its name
         const { data: existingProduct } = await supabase
           .from('products')
@@ -635,7 +651,7 @@ const App: React.FC = () => {
           alert(`Erro: Já existe um produto cadastrado com este código de barras (${newProduct.barcode}) no banco de dados (mas não foi possível ler o nome por permissão).`);
         }
       } else {
-        alert(`Erro ao adicionar produto: ${error.message}`);
+        alert(`Erro ao adicionar produto: ${error?.message || 'Erro desconhecido'}`);
       }
     }
   };
@@ -655,18 +671,26 @@ const App: React.FC = () => {
       .select()
       .maybeSingle();
 
-    // Se falhar por causa da coluna on_shopping_list, tentamos remover esse campo e atualizar o resto
-    if (error && error.message.includes('on_shopping_list')) {
-      console.warn("Column 'on_shopping_list' not found. Retrying without it...");
-      const { on_shopping_list, ...restUpdateData } = updateData as any;
-      const retry = await supabase
-        .from('products')
-        .update(restUpdateData)
-        .eq('id', id)
-        .select()
-        .maybeSingle();
-      data = retry.data;
-      error = retry.error;
+    // Loop de retry genérico para colunas não encontradas
+    let currentUpdateData = { ...updateData };
+    while (error && error.message.includes('column') && error.message.includes('not found')) {
+      const match = error.message.match(/'([^']+)'/);
+      if (match && match[1]) {
+        const missingColumn = match[1];
+        console.warn(`Column '${missingColumn}' not found in DB. Retrying update without it...`);
+        const { [missingColumn]: _, ...nextUpdateData } = currentUpdateData as any;
+        currentUpdateData = nextUpdateData;
+        const retry = await supabase
+          .from('products')
+          .update(currentUpdateData)
+          .eq('id', id)
+          .select()
+          .maybeSingle();
+        data = retry.data;
+        error = retry.error;
+      } else {
+        break; // Não conseguiu extrair o nome da coluna
+      }
     }
 
     if (data) {
