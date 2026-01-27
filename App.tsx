@@ -230,7 +230,7 @@ const App: React.FC = () => {
         setLoadingStatus('Carregando histórico de vendas...');
         const { data: allSalesData, error: allSalesError } = await supabase
           .from('sales')
-          .select('*, sale_items(*, products(name))')
+          .select('*, operator:operator_id(name), reverter:reversed_by(name), sale_items(*, products(name))')
           .order('created_at', { ascending: false });
 
         if (allSalesError) {
@@ -252,12 +252,12 @@ const App: React.FC = () => {
             amountPaid: Number(s.total),
             change: 0,
             date: s.created_at,
-            operatorName: s.employees?.name || 'Operador',
+            operatorName: s.operator?.name || 'Operador',
             cashierNumber: s.cashier_number,
             status: s.status as any,
             payments: s.payments || [],
             cancellationReason: s.cancellation_reason,
-            reversedBy: s.reversed_by,
+            reversedBy: s.reverter?.name || s.reversed_by || undefined,
             reversedAt: s.reversed_at ? s.reversed_at : undefined
           }));
           setAllSales(mappedAllSales);
@@ -564,7 +564,7 @@ const App: React.FC = () => {
         .update({
           status: 'reversed',
           cancellation_reason: reason,
-          reversed_by: loggedInUser!.name,
+          reversed_by: loggedInUser!.id,
           reversed_at: new Date().toISOString()
         })
         .eq('id', saleId);

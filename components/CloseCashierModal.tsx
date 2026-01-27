@@ -70,7 +70,7 @@ const CloseCashierModal: React.FC<CloseCashierModalProps & { settings?: SystemSe
             payments.total += sale.total;
         });
 
-        const expectedInCash = (cashierState.openingBalance || 0) + (payments['Dinheiro'] || 0);
+        const expectedInCash = (cashierState.openingBalance || 0) + payments.total;
         const expectedTotal = expectedInCash + (payments['Cartão Débito'] || 0) + (payments['Cartão Crédito'] || 0) + (payments['PIX'] || 0);
 
         const openTime = new Date(cashierState.openTime.split(', ')[0].split('/').reverse().join('-') + 'T' + cashierState.openTime.split(', ')[1]);
